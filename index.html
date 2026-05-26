@@ -1561,6 +1561,19 @@
     }
   }
 
+
+  /* ============================================================
+     SECURE ADMIN AUTH UI
+     ============================================================ */
+  body:not(.admin-mode) .listing-remove-btn,
+  body:not(.admin-mode) .add-listing-btn {
+    display: none !important;
+  }
+
+  #admin-login-modal .modal-content {
+    max-width: 480px;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1834,6 +1847,34 @@ const CONFIG = {
       <button class="btn-size-cancel" id="size-cancel">Cancel</button>
       <button class="btn-size-add" id="size-add">Add to Basket</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal" id="admin-login-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Admin Login</h2>
+      <button class="modal-close" id="admin-login-close">✕</button>
+    </div>
+    <form id="admin-login-form">
+      <div class="form-group">
+        <label class="form-label">Admin Email</label>
+        <input type="email" id="admin-login-email" class="form-input" placeholder="Xyedewet7@gmail.com" autocomplete="email" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="admin-login-password" class="form-input" placeholder="Your Supabase password" autocomplete="current-password" required />
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">
+        This uses Supabase Auth. Customers cannot add or delete listings.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" id="admin-login-cancel">Cancel</button>
+        <button type="submit" class="btn-modal-submit">Sign In</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -2310,45 +2351,127 @@ listingImageZone.addEventListener('click', () => {
   listingImageFile.click();
 });
 
-function checkAdminStatus() {
+
+const ADMIN_EMAIL = "Xyedewet7@gmail.com";
+
+const adminLoginModal = document.getElementById('admin-login-modal');
+const adminLoginForm = document.getElementById('admin-login-form');
+const adminLoginEmail = document.getElementById('admin-login-email');
+const adminLoginPassword = document.getElementById('admin-login-password');
+const adminLoginClose = document.getElementById('admin-login-close');
+const adminLoginCancel = document.getElementById('admin-login-cancel');
+const footerSigninBtn = document.getElementById('footer-signin-btn');
+
+function isAllowedAdminUser(user) {
+  return Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+}
+
+async function checkAdminStatus() {
+  const { data } = await supabaseClient.auth.getSession();
+  const user = data && data.session ? data.session.user : null;
+  isAdminSession = isAllowedAdminUser(user);
   updateAdminUI(isAdminSession);
 }
 
 function updateAdminUI(isAdmin) {
   document.body.classList.toggle('admin-mode', isAdmin);
+
   if (isAdmin) {
     adminBtn.textContent = 'Logout';
     adminBtn.classList.add('logged-in');
     addListingBtn.classList.add('visible');
+    if (footerSigninBtn) footerSigninBtn.textContent = 'Admin Logged In';
   } else {
     adminBtn.textContent = 'Admin';
     adminBtn.classList.remove('logged-in');
     addListingBtn.classList.remove('visible');
+    if (footerSigninBtn) footerSigninBtn.textContent = 'Admin Sign In';
     if (modal) modal.classList.remove('open');
   }
 }
 
-// Admin login/logout handler
-adminBtn.addEventListener('click', () => {
+function openAdminLogin() {
+  if (adminLoginEmail) adminLoginEmail.value = ADMIN_EMAIL;
+  if (adminLoginPassword) adminLoginPassword.value = '';
+  adminLoginModal.classList.add('open');
+  setTimeout(() => adminLoginPassword && adminLoginPassword.focus(), 50);
+}
+
+function closeAdminLogin() {
+  adminLoginModal.classList.remove('open');
+}
+
+async function adminLogout() {
+  await supabaseClient.auth.signOut();
+  isAdminSession = false;
+  updateAdminUI(false);
+}
+
+adminBtn.addEventListener('click', async () => {
   if (isAdminSession) {
-    // Logout
-    isAdminSession = false;
-    updateAdminUI(false);
+    await adminLogout();
   } else {
-    // Login - prompt for password
-    const password = prompt('Enter admin password:');
-    if (password === 'Admin2kbrenton') {
-      isAdminSession = true;
-      updateAdminUI(true);
-      alert('Admin access granted!');
-    } else if (password !== null) {
-      alert('Incorrect password');
-    }
+    openAdminLogin();
   }
 });
 
 addListingBtn.addEventListener('click', () => {
+  if (!isAdminSession) {
+    openAdminLogin();
+    return;
+  }
   modal.classList.add('open');
+});
+
+adminLoginClose.addEventListener('click', closeAdminLogin);
+adminLoginCancel.addEventListener('click', closeAdminLogin);
+
+adminLoginModal.addEventListener('click', (e) => {
+  if (e.target === adminLoginModal) closeAdminLogin();
+});
+
+adminLoginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email = adminLoginEmail.value.trim();
+  const password = adminLoginPassword.value;
+
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    alert('This email is not allowed as admin.');
+    return;
+  }
+
+  const submitBtn = adminLoginForm.querySelector('.btn-modal-submit');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Signing In...';
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('Admin login failed:', error);
+      alert('Login failed. Check your Supabase admin email/password.');
+      return;
+    }
+
+    if (!isAllowedAdminUser(data.user)) {
+      await supabaseClient.auth.signOut();
+      alert('This account is not allowed as admin.');
+      return;
+    }
+
+    isAdminSession = true;
+    updateAdminUI(true);
+    closeAdminLogin();
+    alert('Admin access granted.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
 });
 
 closeBtn.addEventListener('click', () => {
@@ -2365,78 +2488,21 @@ modal.addEventListener('click', (e) => {
   }
 });
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  if (!listingImageData.length) {
-    alert('Please paste or upload at least one photo for the listing.');
-    return;
-  }
-
-  const submitBtn = form.querySelector('.btn-modal-submit');
-  const originalText = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Saving...';
-
-  const newListing = {
-    name: document.getElementById('listing-name').value.trim(),
-    brand: document.getElementById('listing-brand').value.trim(),
-    price: document.getElementById('listing-price').value.trim(),
-    image: listingImageData[0],
-    photos: [...listingImageData],
-    badge: document.getElementById('listing-badge').value,
-    category: document.getElementById('listing-category').value,
-    sizes: document.getElementById('listing-sizes').value
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s),
-  };
-
-  try {
-    const { error } = await supabaseClient
-      .from('listings')
-      .insert([newListing]);
-
-    if (error) {
-      console.error('Supabase insert failed:', error);
-      alert('Could not save listing. Check your Supabase insert policy.');
-      return;
-    }
-
-    await loadSavedListings();
-
-    form.reset();
-    listingImageData = [];
-    listingImagePreviewGrid.hidden = true;
-    listingImagePreviewGrid.innerHTML = '';
-    listingImageFile.value = '';
-    modal.classList.remove('open');
-    alert('Listing saved online.');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
-  }
-});
-
 // Initialize admin status on page load
 checkAdminStatus();
 
+supabaseClient.auth.onAuthStateChange((_event, session) => {
+  const user = session ? session.user : null;
+  isAdminSession = isAllowedAdminUser(user);
+  updateAdminUI(isAdminSession);
+});
+
 // Footer sign-in button
-const footerSigninBtn = document.getElementById('footer-signin-btn');
-footerSigninBtn.addEventListener('click', () => {
+footerSigninBtn.addEventListener('click', async () => {
   if (isAdminSession) {
-    // Already logged in
-    alert('You are already logged in as admin');
+    alert('You are already logged in as admin.');
   } else {
-    // Login - prompt for password
-    const password = prompt('Enter admin password:');
-    if (password === 'Admin2kbrenton') {
-      isAdminSession = true;
-      updateAdminUI(true);
-      alert('Admin access granted!');
-    } else if (password !== null) {
-      alert('Incorrect password');
-    }
+    openAdminLogin();
   }
 });
 
