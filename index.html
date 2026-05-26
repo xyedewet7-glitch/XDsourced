@@ -1574,6 +1574,14 @@
     max-width: 480px;
   }
 
+
+  .listing-payment-warning {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1928,6 +1936,17 @@ const CONFIG = {
         </div>
         <div class="image-preview-grid" id="listing-image-preview-grid" hidden></div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Stripe Payment Link *</label>
+        <input
+          type="url"
+          id="listing-stripe-link"
+          class="form-input"
+          placeholder="https://buy.stripe.com/..."
+          required
+        />
+      </div>
+
 
       <div class="form-group">
         <label class="form-label">Available Sizes</label>
@@ -2130,6 +2149,7 @@ async function loadSavedListings() {
       image: item.image || (Array.isArray(item.photos) && item.photos[0]) || '',
       badge: item.badge || 'in-stock',
       category: item.category || 'shoes',
+      stripe_link: item.stripe_link || item.payment_link || '',
       href: '#',
     }));
 
@@ -2168,6 +2188,7 @@ function renderListingCard(p, index) {
           <span class="listing-price">${p.price}</span>
           <button class="listing-arrow add-to-basket-btn" data-product-id="${index}" aria-label="Add ${p.name} to basket">+</button>
         </div>
+        ${p.stripe_link ? '': '<div class="listing-payment-warning">Payment link missing</div>'}
         <button class="listing-buy-btn" data-product-id="${index}">Buy</button>
       </div>
     </div>
@@ -2482,9 +2503,76 @@ cancelBtn.addEventListener('click', () => {
   modal.classList.remove('open');
 });
 
+
 modal.addEventListener('click', (e) => {
   if (e.target === modal) {
     modal.classList.remove('open');
+  }
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!isAdminSession) {
+    openAdminLogin();
+    return;
+  }
+
+  if (!listingImageData.length) {
+    alert('Please paste or upload at least one photo for the listing.');
+    return;
+  }
+
+  const submitBtn = form.querySelector('.btn-modal-submit');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving...';
+
+  const newListing = {
+    name: document.getElementById('listing-name').value.trim(),
+    brand: document.getElementById('listing-brand').value.trim(),
+    price: document.getElementById('listing-price').value.trim(),
+    image: listingImageData[0],
+    photos: [...listingImageData],
+    badge: document.getElementById('listing-badge').value,
+    category: document.getElementById('listing-category').value,
+    stripe_link: document.getElementById('listing-stripe-link').value.trim(),
+    sizes: document.getElementById('listing-sizes').value
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s),
+  };
+
+  if (!newListing.stripe_link || !newListing.stripe_link.startsWith('https://buy.stripe.com/')) {
+    alert('Please paste a valid Stripe Payment Link that starts with https://buy.stripe.com/');
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('listings')
+      .insert([newListing]);
+
+    if (error) {
+      console.error('Supabase insert failed:', error);
+      alert('Could not save listing. Check your Supabase policies and admin login.');
+      return;
+    }
+
+    await loadSavedListings();
+
+    form.reset();
+    listingImageData = [];
+    listingImagePreviewGrid.hidden = true;
+    listingImagePreviewGrid.innerHTML = '';
+    listingImageFile.value = '';
+    modal.classList.remove('open');
+    alert('Listing saved online.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
   }
 });
 
@@ -2903,7 +2991,42 @@ function getBasketSummary() {
   }).join(' | ');
 }
 
+function getStripeLinkForCheckout(source = 'basket', item = null) {
+  if (item && item.stripe_link) {
+    return item.stripe_link;
+  }
+
+  if (source === 'basket') {
+    if (!basket || basket.length === 0) return '';
+
+    if (basket.length === 1) {
+      return basket[0].stripe_link || STRIPE_PAYMENT_LINK;
+    }
+
+    const allLinks = basket
+      .map(product => product.stripe_link)
+      .filter(Boolean);
+
+    const uniqueLinks = [...new Set(allLinks)];
+
+    if (uniqueLinks.length === 1 && allLinks.length === basket.length) {
+      return uniqueLinks[0];
+    }
+
+    return '';
+  }
+
+  return STRIPE_PAYMENT_LINK;
+}
+
 function goToStripeCheckout(source = 'basket', item = null) {
+  const checkoutLink = getStripeLinkForCheckout(source, item);
+
+  if (!checkoutLink) {
+    alert('This checkout needs a Stripe Payment Link. For multiple different products, please use each product Buy button one at a time.');
+    return;
+  }
+
   const orderSummary = item
     ? `${item.name} ${item.selectedSize ? '- ' + item.selectedSize : ''} (${item.price})`
     : getBasketSummary();
@@ -2912,13 +3035,14 @@ function goToStripeCheckout(source = 'basket', item = null) {
     localStorage.setItem('xdsourcedit_pending_order', JSON.stringify({
       source,
       orderSummary,
+      stripeLink: checkoutLink,
       createdAt: new Date().toISOString()
     }));
   } catch (error) {
     console.warn('Could not save pending order:', error);
   }
 
-  window.location.href = STRIPE_PAYMENT_LINK;
+  window.location.href = checkoutLink;
 }
 
 function showPaymentReturnPageIfNeeded() {
@@ -2964,6 +3088,14 @@ document.getElementById('basket-checkout').addEventListener('click', () => {
     return;
   }
 
+  if (basket.length > 1) {
+    const uniqueLinks = [...new Set(basket.map(item => item.stripe_link).filter(Boolean))];
+    if (uniqueLinks.length > 1 || uniqueLinks.length === 0) {
+      alert('Your basket has multiple different Stripe links. Please buy each item using its own Buy button.');
+      return;
+    }
+  }
+
   goToStripeCheckout('basket');
 });
 
@@ -2984,6 +3116,11 @@ document.addEventListener('click', (e) => {
 
   if (!product) {
     alert('This listing could not be found.');
+    return;
+  }
+
+  if (!product.stripe_link) {
+    alert('This product does not have a Stripe Payment Link yet. Add one in Admin before customers can buy it.');
     return;
   }
 
