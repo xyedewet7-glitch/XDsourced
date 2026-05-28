@@ -1582,154 +1582,6 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-
-  /* ============================================================
-     MOBILE 2-COLUMN PRODUCT GRID
-     ============================================================ */
-  @media (max-width: 600px) {
-    .listings-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-      gap: 8px !important;
-      background: transparent !important;
-      border: 0 !important;
-      overflow: visible !important;
-    }
-
-    .category-section-title,
-    .category-empty,
-    .listings-empty {
-      grid-column: 1 / -1 !important;
-    }
-
-    .category-section-title {
-      padding: 18px 4px 10px !important;
-      background: transparent !important;
-      border-top: 1px solid var(--border) !important;
-      border-bottom: 0 !important;
-    }
-
-    .category-section-title h3 {
-      font-size: 30px !important;
-    }
-
-    .category-section-title span {
-      font-size: 9px !important;
-      line-height: 1.3 !important;
-    }
-
-    .listing-card {
-      border: 1px solid var(--border) !important;
-      border-radius: 8px !important;
-      overflow: hidden !important;
-      min-width: 0 !important;
-      background: var(--surface) !important;
-    }
-
-    .listing-img {
-      aspect-ratio: 1 / 1 !important;
-      min-height: 0 !important;
-      max-height: 150px !important;
-    }
-
-    .listing-badge {
-      top: 6px !important;
-      left: 6px !important;
-      font-size: 7px !important;
-      padding: 2px 6px !important;
-      letter-spacing: 0.08em !important;
-    }
-
-    .listing-remove-btn {
-      top: 6px !important;
-      right: 6px !important;
-      width: 22px !important;
-      height: 22px !important;
-      font-size: 10px !important;
-    }
-
-    .listing-info {
-      padding: 9px !important;
-      gap: 4px !important;
-    }
-
-    .listing-brand {
-      font-size: 7px !important;
-      letter-spacing: 0.1em !important;
-      line-height: 1.1 !important;
-    }
-
-    .listing-name {
-      font-size: 13px !important;
-      line-height: 1.05 !important;
-      min-height: 28px !important;
-      display: -webkit-box !important;
-      -webkit-line-clamp: 2 !important;
-      -webkit-box-orient: vertical !important;
-      overflow: hidden !important;
-    }
-
-    .listing-category-label {
-      font-size: 7px !important;
-      padding: 1px 5px !important;
-      margin-top: 1px !important;
-    }
-
-    .listing-sizes {
-      gap: 3px !important;
-      margin-top: 2px !important;
-      max-height: 20px !important;
-      overflow: hidden !important;
-    }
-
-    .size-chip {
-      font-size: 8px !important;
-      padding: 1px 4px !important;
-    }
-
-    .listing-footer {
-      padding-top: 6px !important;
-      margin-top: 6px !important;
-    }
-
-    .listing-price {
-      font-size: 16px !important;
-      line-height: 1 !important;
-    }
-
-    .listing-arrow,
-    .add-to-basket-btn {
-      width: 24px !important;
-      height: 24px !important;
-      min-width: 24px !important;
-      font-size: 12px !important;
-    }
-
-    .listing-buy-btn {
-      margin-top: 6px !important;
-      padding: 7px 4px !important;
-      font-size: 9px !important;
-      letter-spacing: 0.06em !important;
-      border-radius: 4px !important;
-    }
-
-    .listing-payment-warning {
-      font-size: 8px !important;
-      margin-top: 4px !important;
-      line-height: 1.2 !important;
-    }
-  }
-
-  @media (max-width: 340px) {
-    .listings-grid {
-      grid-template-columns: 1fr !important;
-    }
-
-    .listing-img {
-      max-height: 190px !important;
-      aspect-ratio: 16 / 10 !important;
-    }
-  }
-
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2055,7 +1907,7 @@ const CONFIG = {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Price *</label>
-          <input type="text" id="listing-price" class="form-input" placeholder="e.g., €80 or POA" required />
+          <input type="text" id="listing-price" class="form-input" placeholder="e.g., €80 (avoid POA for checkout)" required />
         </div>
         <div class="form-group">
           <label class="form-label">Status *</label>
@@ -2085,13 +1937,12 @@ const CONFIG = {
         <div class="image-preview-grid" id="listing-image-preview-grid" hidden></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Stripe Payment Link *</label>
+        <label class="form-label">Stripe Payment Link (Optional)</label>
         <input
           type="url"
           id="listing-stripe-link"
           class="form-input"
-          placeholder="https://buy.stripe.com/..."
-          required
+          placeholder="Optional: https://buy.stripe.com/..."
         />
       </div>
 
@@ -2184,6 +2035,7 @@ const SUPABASE_URL = "https://yuhxgdalgeodkhbgiybj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aHhnZGFsZ2VvZGtoYmdpeWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjI0MjUsImV4cCI6MjA5NTAzODQyNX0.put93bDFygxMKJDdppLzpSlUVMMcTNGG_z1qJbXF-1Y";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 console.log('XDSOURCEDIT connected to Supabase listings table');
+const CHECKOUT_FUNCTION_URL = 'https://yuhxgdalgeodkhbgiybj.functions.supabase.co/create-checkout-session';
 </script>
 
 <script>
@@ -2691,13 +2543,6 @@ form.addEventListener('submit', async (e) => {
       .filter(s => s),
   };
 
-  if (!newListing.stripe_link || !newListing.stripe_link.startsWith('https://buy.stripe.com/')) {
-    alert('Please paste a valid Stripe Payment Link that starts with https://buy.stripe.com/');
-    submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
-    return;
-  }
-
   try {
     const { error } = await supabaseClient
       .from('listings')
@@ -3127,9 +2972,7 @@ sizeAdd.addEventListener('click', () => {
 });
 
 
-// Stripe payment link
-const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/fZu3cndQu3vkaLRaBY5os00';
-
+// Stripe basket-total checkout through Supabase Edge Function
 function getBasketSummary() {
   if (!basket || basket.length === 0) return 'Basket checkout';
   return basket.map(item => {
@@ -3139,58 +2982,77 @@ function getBasketSummary() {
   }).join(' | ');
 }
 
-function getStripeLinkForCheckout(source = 'basket', item = null) {
-  if (item && item.stripe_link) {
-    return item.stripe_link;
-  }
+async function goToStripeCheckout(source = 'basket', item = null) {
+  const checkoutItems = item ? [item] : basket;
 
-  if (source === 'basket') {
-    if (!basket || basket.length === 0) return '';
-
-    if (basket.length === 1) {
-      return basket[0].stripe_link || STRIPE_PAYMENT_LINK;
-    }
-
-    const allLinks = basket
-      .map(product => product.stripe_link)
-      .filter(Boolean);
-
-    const uniqueLinks = [...new Set(allLinks)];
-
-    if (uniqueLinks.length === 1 && allLinks.length === basket.length) {
-      return uniqueLinks[0];
-    }
-
-    return '';
-  }
-
-  return STRIPE_PAYMENT_LINK;
-}
-
-function goToStripeCheckout(source = 'basket', item = null) {
-  const checkoutLink = getStripeLinkForCheckout(source, item);
-
-  if (!checkoutLink) {
-    alert('This checkout needs a Stripe Payment Link. For multiple different products, please use each product Buy button one at a time.');
+  if (!checkoutItems || checkoutItems.length === 0) {
+    alert('Your basket is empty.');
     return;
   }
 
-  const orderSummary = item
-    ? `${item.name} ${item.selectedSize ? '- ' + item.selectedSize : ''} (${item.price})`
-    : getBasketSummary();
+  const payloadItems = checkoutItems.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    quantity: product.quantity || 1,
+    selectedSize: product.selectedSize || 'One Size',
+    category: product.category || '',
+    image: product.image || (Array.isArray(product.photos) && product.photos[0]) || ''
+  }));
 
   try {
     localStorage.setItem('xdsourcedit_pending_order', JSON.stringify({
       source,
-      orderSummary,
-      stripeLink: checkoutLink,
+      orderSummary: item
+        ? `${item.name} ${item.selectedSize ? '- ' + item.selectedSize : ''} (${item.price})`
+        : getBasketSummary(),
       createdAt: new Date().toISOString()
     }));
   } catch (error) {
     console.warn('Could not save pending order:', error);
   }
 
-  window.location.href = checkoutLink;
+  const checkoutButton = document.getElementById('basket-checkout');
+  const originalText = checkoutButton ? checkoutButton.textContent : '';
+
+  if (checkoutButton && source === 'basket') {
+    checkoutButton.disabled = true;
+    checkoutButton.textContent = 'Opening Checkout...';
+  }
+
+  try {
+    const response = await fetch(CHECKOUT_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        items: payloadItems,
+        successUrl: `${window.location.origin}${window.location.pathname}#payment-success`,
+        cancelUrl: `${window.location.origin}${window.location.pathname}`,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.url) {
+      console.error('Checkout session failed:', result);
+      alert(result.error || 'Could not open Stripe checkout. Please try again.');
+      return;
+    }
+
+    window.location.href = result.url;
+  } catch (error) {
+    console.error('Checkout error:', error);
+    alert('Could not connect to Stripe checkout. Please try again.');
+  } finally {
+    if (checkoutButton && source === 'basket') {
+      checkoutButton.disabled = false;
+      checkoutButton.textContent = originalText || 'Buy';
+    }
+  }
 }
 
 function showPaymentReturnPageIfNeeded() {
@@ -3236,14 +3098,6 @@ document.getElementById('basket-checkout').addEventListener('click', () => {
     return;
   }
 
-  if (basket.length > 1) {
-    const uniqueLinks = [...new Set(basket.map(item => item.stripe_link).filter(Boolean))];
-    if (uniqueLinks.length > 1 || uniqueLinks.length === 0) {
-      alert('Your basket has multiple different Stripe links. Please buy each item using its own Buy button.');
-      return;
-    }
-  }
-
   goToStripeCheckout('basket');
 });
 
@@ -3264,11 +3118,6 @@ document.addEventListener('click', (e) => {
 
   if (!product) {
     alert('This listing could not be found.');
-    return;
-  }
-
-  if (!product.stripe_link) {
-    alert('This product does not have a Stripe Payment Link yet. Add one in Admin before customers can buy it.');
     return;
   }
 
