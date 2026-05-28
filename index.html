@@ -2381,7 +2381,6 @@ function renderListingCard(p, index) {
           <span class="listing-price">${p.price}</span>
           <button class="listing-arrow add-to-basket-btn" data-product-id="${index}" aria-label="Add ${p.name} to basket">+</button>
         </div>
-        ${p.stripe_link ? '': '<div class="listing-payment-warning">Payment link missing</div>'}
         <button class="listing-buy-btn" data-product-id="${index}">Buy</button>
       </div>
     </div>
