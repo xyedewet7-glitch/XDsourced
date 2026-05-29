@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- XDSOURCED_FINAL_WITH_MAIN_IMAGES_2026_05_29 -->
 <!-- XDSOURCED_FINAL_STABLE_ALL_FEATURES_2026_05_29 -->
 <html lang="en">
 <head>
@@ -2334,11 +2335,11 @@ async function loadSavedListings() {
 
   try {
     // Public/mobile-safe loading:
-    // Do NOT request image/photos here because older rows may contain huge base64 data.
-    // This makes products appear quickly on phones and computers.
+    // Loads the single main image so product photos show.
+    // Avoids the heavier photos/gallery array so phones do not get overloaded.
     const { data, error } = await supabaseClient
       .from('listings')
-      .select('id,name,brand,price,badge,category,sizes,created_at')
+      .select('id,name,brand,price,badge,category,sizes,image,created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -2368,7 +2369,7 @@ async function loadSavedListings() {
       ...item,
       photos: [],
       sizes: safeArray(item.sizes),
-      image: '',
+      image: item.image || '',
       badge: item.badge || 'in-stock',
       category: item.category || 'shoes',
       stripe_link: '',
@@ -2410,7 +2411,7 @@ function renderListingCard(p, index) {
   return `
     <div class="listing-card" data-product-id="${index}" data-badge="${p.badge}" data-category="${category}">
       <div class="listing-img">
-        <img src="${imageSrc}" alt="${p.name}" loading="lazy" />
+        <img src="${imageSrc}" alt="${p.name}" loading="lazy" onerror="this.onerror=null; this.src=productPlaceholderImage({name: this.alt});" />
         <span class="listing-badge ${p.badge}">${badgeLabel[p.badge]}</span>
         <button class="listing-remove-btn" data-product-id="${index}" title="Remove listing" aria-label="Remove ${p.name}">✕</button>
       </div>
