@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- XDSOURCED_SUPABASE_LOADER_ORDER_FIXED_2026_05_29 -->
+<!-- XDSOURCED_MOBILE_SAFE_LIGHTWEIGHT_LISTINGS_2026_05_29 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -2325,14 +2325,25 @@ function ensureListingCategories() {
 }
 
 async function loadSavedListings() {
+  const grid = document.getElementById('listings-grid');
+  const empty = document.getElementById('listings-empty');
+
+  if (empty) {
+    empty.style.display = 'block';
+    empty.textContent = 'Loading products...';
+  }
+
   try {
+    // IMPORTANT: lightweight select only.
+    // Older rows may contain huge base64 photos, which can stop phones loading the shop.
     const { data, error } = await supabaseClient
       .from('listings')
-      .select('*')
+      .select('id,name,brand,price,badge,category,stripe_link,payment_link,sizes,created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Could not load Supabase listings:', error);
+      if (empty) empty.textContent = 'Could not load products. Please refresh.';
       return;
     }
 
@@ -2349,35 +2360,45 @@ async function loadSavedListings() {
       return [];
     };
 
-    C.listings.items = (data || []).map(item => {
-      const photos = safeArray(item.photos);
-      const sizes = safeArray(item.sizes);
-
-      return {
-        ...item,
-        photos,
-        sizes,
-        image: item.image || photos[0] || '',
-        badge: item.badge || 'in-stock',
-        category: item.category || 'shoes',
-        stripe_link: item.stripe_link || item.payment_link || '',
-        href: '#',
-      };
-    });
+    C.listings.items = (data || []).map(item => ({
+      ...item,
+      photos: [],
+      sizes: safeArray(item.sizes),
+      image: '',
+      badge: item.badge || 'in-stock',
+      category: item.category || 'shoes',
+      stripe_link: item.stripe_link || item.payment_link || '',
+      href: '#',
+    }));
 
     ensureListingCategories();
     renderListings();
+
+    if (!C.listings.items.length && empty) {
+      empty.textContent = 'No products listed yet. Add your first product in admin.';
+    }
   } catch (error) {
     console.error('Supabase listing load failed:', error);
+    if (empty) empty.textContent = 'Could not load products. Please refresh.';
   }
 }
 
 function saveListings() {
   // Listings now save to Supabase, not localStorage.
 }
+function productPlaceholderImage(product) {
+  const name = encodeURIComponent((product && product.name) ? product.name : 'XDSOURCED');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+    <rect width="800" height="800" fill="#232d3d"/>
+    <rect x="28" y="28" width="744" height="744" rx="18" fill="none" stroke="#3a4452" stroke-width="4"/>
+    <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" fill="#5b8fd9" font-family="Arial, sans-serif" font-size="54" font-weight="800">XDSOURCED</text>
+    <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="#8a95a8" font-family="Arial, sans-serif" font-size="28">PRODUCT PHOTO</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
 
 function renderListingCard(p, index) {
-  const imageSrc = (p.photos && p.photos.length) ? p.photos[0] : p.image;
+  const imageSrc = ((p.photos && p.photos.length) ? p.photos[0] : p.image) || productPlaceholderImage(p);
   const sizes = Array.isArray(p.sizes) ? p.sizes : [];
   const category = guessListingCategory(p);
 
@@ -2553,10 +2574,36 @@ function showListingImagePreview(src) {
 }
 
 function readImageFile(file) {
+  if (!file) return;
+
+  const maxSize = 900;
+  const quality = 0.72;
   const reader = new FileReader();
+
   reader.onload = () => {
-    showListingImagePreview(reader.result);
+    const img = new Image();
+
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const compressed = canvas.toDataURL('image/jpeg', quality);
+      showListingImagePreview(compressed);
+    };
+
+    img.onerror = () => {
+      // Fallback if compression fails.
+      showListingImagePreview(reader.result);
+    };
+
+    img.src = reader.result;
   };
+
   reader.readAsDataURL(file);
 }
 
@@ -2919,7 +2966,7 @@ let activePhotoIndex = 0;
 let activeProductSelectedSize = null;
 
 function renderProductGallery() {
-  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image];
+  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image || productPlaceholderImage(activeProduct)];
   productGalleryImg.src = photos[activePhotoIndex];
   galleryCounter.textContent = `${activePhotoIndex + 1} / ${photos.length}`;
 }
@@ -2967,13 +3014,13 @@ productModal.addEventListener('click', (e) => {
 });
 
 productPrev.addEventListener('click', () => {
-  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image];
+  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image || productPlaceholderImage(activeProduct)];
   activePhotoIndex = (activePhotoIndex - 1 + photos.length) % photos.length;
   renderProductGallery();
 });
 
 productNext.addEventListener('click', () => {
-  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image];
+  const photos = activeProduct.photos && activeProduct.photos.length ? activeProduct.photos : [activeProduct.image || productPlaceholderImage(activeProduct)];
   activePhotoIndex = (activePhotoIndex + 1) % photos.length;
   renderProductGallery();
 });
@@ -3367,6 +3414,40 @@ document.addEventListener('click', (e) => {
     });
   }
 })();
+
+// XDSOURCED_REQUEST_LINK_HANDLER
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a');
+  if (!link) return;
+
+  const label = (link.textContent || '').trim().toLowerCase();
+  const href = link.getAttribute('href') || '';
+
+  if (
+    href === '#' &&
+    (
+      label.includes('request') ||
+      label.includes('quote') ||
+      label.includes('can order') ||
+      label.includes('contact')
+    )
+  ) {
+    event.preventDefault();
+    if (typeof openContactModal === 'function') {
+      openContactModal();
+    } else {
+      const contactModalEl = document.getElementById('contact-modal');
+      if (contactModalEl) contactModalEl.classList.add('open');
+    }
+  }
+
+  if (link.id === 'top-signin-link') {
+    event.preventDefault();
+    const adminBtnEl = document.getElementById('admin-btn');
+    if (adminBtnEl) adminBtnEl.click();
+  }
+});
+
 </script>
 
 </body>
