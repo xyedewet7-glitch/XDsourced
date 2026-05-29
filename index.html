@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- XDSOURCED_FIXED_CURRENT_2026_05_29 -->
+<!-- XDSOURCED_SUPABASE_LOADER_ORDER_FIXED_2026_05_29 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
-  /* ==========================================A==================
+  /* ============================================================
      ✏️  THEME — change these variables to restyle everything
      ============================================================ */
   :root {
@@ -2336,16 +2336,34 @@ async function loadSavedListings() {
       return;
     }
 
-    C.listings.items = (data || []).map(item => ({
-      ...item,
-      photos: Array.isArray(item.photos) ? item.photos : [],
-      sizes: Array.isArray(item.sizes) ? item.sizes : [],
-      image: item.image || (Array.isArray(item.photos) && item.photos[0]) || '',
-      badge: item.badge || 'in-stock',
-      category: item.category || 'shoes',
-      stripe_link: item.stripe_link || item.payment_link || '',
-      href: '#',
-    }));
+    const safeArray = (value) => {
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : value.split(',').map(v => v.trim()).filter(Boolean);
+        } catch (error) {
+          return value.split(',').map(v => v.trim()).filter(Boolean);
+        }
+      }
+      return [];
+    };
+
+    C.listings.items = (data || []).map(item => {
+      const photos = safeArray(item.photos);
+      const sizes = safeArray(item.sizes);
+
+      return {
+        ...item,
+        photos,
+        sizes,
+        image: item.image || photos[0] || '',
+        badge: item.badge || 'in-stock',
+        category: item.category || 'shoes',
+        stripe_link: item.stripe_link || item.payment_link || '',
+        href: '#',
+      };
+    });
 
     ensureListingCategories();
     renderListings();
@@ -2357,9 +2375,6 @@ async function loadSavedListings() {
 function saveListings() {
   // Listings now save to Supabase, not localStorage.
 }
-
-loadSavedListings();
-ensureListingCategories();
 
 function renderListingCard(p, index) {
   const imageSrc = (p.photos && p.photos.length) ? p.photos[0] : p.image;
@@ -2488,6 +2503,11 @@ $('filter-row').addEventListener('click', e => {
     applyListingFilters();
   }
 });
+
+// Load Supabase listings after all listing render/filter functions are ready.
+ensureListingCategories();
+renderListings();
+loadSavedListings();
 
 /* footer */
 $('footer-logo').textContent = C.brand;
@@ -3347,40 +3367,6 @@ document.addEventListener('click', (e) => {
     });
   }
 })();
-
-// XDSOURCED_REQUEST_LINK_HANDLER
-document.addEventListener('click', (event) => {
-  const link = event.target.closest('a');
-  if (!link) return;
-
-  const label = (link.textContent || '').trim().toLowerCase();
-  const href = link.getAttribute('href') || '';
-
-  if (
-    href === '#' &&
-    (
-      label.includes('request') ||
-      label.includes('quote') ||
-      label.includes('can order') ||
-      label.includes('contact')
-    )
-  ) {
-    event.preventDefault();
-    if (typeof openContactModal === 'function') {
-      openContactModal();
-    } else {
-      const contactModalEl = document.getElementById('contact-modal');
-      if (contactModalEl) contactModalEl.classList.add('open');
-    }
-  }
-
-  if (link.id === 'top-signin-link') {
-    event.preventDefault();
-    const adminBtnEl = document.getElementById('admin-btn');
-    if (adminBtnEl) adminBtnEl.click();
-  }
-});
-
 </script>
 
 </body>
