@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- XDSOURCED_FIXED_CURRENT_2026_05_29 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -8,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
-  /* ============================================================
+  /* ==========================================A==================
      ✏️  THEME — change these variables to restyle everything
      ============================================================ */
   :root {
@@ -1816,10 +1817,10 @@ const CONFIG = {
 
   /* ── Nav links ─────────────────────────────────────────── */
   nav: [
-    { label: "In-Stock",  href: "/in-stock"  },
-    { label: "Can Order", href: "/can-order" },
-    { label: "About",     href: "/about"     },
-    { label: "Contact",   href: "/contact"   },
+    { label: "In-Stock",  href: "#listings-section"  },
+    { label: "Can Order", href: "#" },
+    { label: "About",     href: "#rts-section"     },
+    { label: "Contact",   href: "#"   },
   ],
 
   /* ── Hero ───────────────────────────────────────────────── */
@@ -1830,7 +1831,7 @@ const CONFIG = {
     image: "https://xdsourcedit.lovable.app/assets/hero-DZhDyPJY.jpg",
     ctas: [
       { label: "Shipping-1-2-weeks",   href: "#",   style: "primary" },
-      { label: "Request an Item", href: "/can-order",  style: "outline" },
+      { label: "Request an Item", href: "#",  style: "outline" },
     ],
   },
 
@@ -1849,7 +1850,7 @@ const CONFIG = {
     label:   "Inventory",
     heading: "Ready to Ship",
     body:    "Verified authentic, ready for immediate dispatch.",
-    cta:     { label: "View All Drops", href: "/in-stock" },
+    cta:     { label: "View All Drops", href: "#listings-section" },
     cards: [
       { icon: "✓",  title: "Authenticated",      desc: "Every piece verified by our in-house team before listing." },
       { icon: "⚡", title: "Fast Dispatch",       desc: "Same or next-day fulfilment from our Dublin warehouse." },
@@ -1864,7 +1865,7 @@ const CONFIG = {
     heading: "Can't find it?\nWe will.",
     body:    "Our global network of collectors and retailers allows us to track down virtually any piece. Submit your request and we'll send a quote within 24 hours.",
     image:   "https://xdsourcedit.lovable.app/assets/sourcing-Ck_TAq7K.jpg",
-    cta:     { label: "Submit Sourcing Request", href: "/can-order" },
+    cta:     { label: "Submit Sourcing Request", href: "#" },
     features: [
       { title: "Worldwide Sourcing",       desc: "Access to collectors and retailers across 40+ countries." },
       { title: "Authentication Guaranteed",desc: "Every sourced item verified before it reaches you." },
@@ -1899,7 +1900,7 @@ const CONFIG = {
   ctaStrip: {
     line1:   "Still looking?",
     line2:   "We source it.",
-    cta:     { label: "Get a Quote", href: "/can-order" },
+    cta:     { label: "Get a Quote", href: "#" },
   },
 
   /* ── Footer ─────────────────────────────────────────────── */
@@ -1924,7 +1925,7 @@ const CONFIG = {
   <a class="nav-logo" id="nav-logo" href="/"></a>
   <ul class="nav-links" id="nav-links"></ul>
   <div class="nav-actions" id="nav-actions">
-    <a href="/login">Sign in</a>
+    <a href="#" id="top-signin-link">Sign in</a>
     <a class="cart-pill" href="#" id="cart-pill">Go to Cart</a>
     <button id="admin-btn" class="admin-nav-btn">Admin</button>
   </div>
@@ -3346,6 +3347,40 @@ document.addEventListener('click', (e) => {
     });
   }
 })();
+
+// XDSOURCED_REQUEST_LINK_HANDLER
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a');
+  if (!link) return;
+
+  const label = (link.textContent || '').trim().toLowerCase();
+  const href = link.getAttribute('href') || '';
+
+  if (
+    href === '#' &&
+    (
+      label.includes('request') ||
+      label.includes('quote') ||
+      label.includes('can order') ||
+      label.includes('contact')
+    )
+  ) {
+    event.preventDefault();
+    if (typeof openContactModal === 'function') {
+      openContactModal();
+    } else {
+      const contactModalEl = document.getElementById('contact-modal');
+      if (contactModalEl) contactModalEl.classList.add('open');
+    }
+  }
+
+  if (link.id === 'top-signin-link') {
+    event.preventDefault();
+    const adminBtnEl = document.getElementById('admin-btn');
+    if (adminBtnEl) adminBtnEl.click();
+  }
+});
+
 </script>
 
 </body>
