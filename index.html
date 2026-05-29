@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- XDSOURCED_MOBILE_SAFE_LIGHTWEIGHT_LISTINGS_2026_05_29 -->
+<!-- XDSOURCED_FINAL_STABLE_ALL_FEATURES_2026_05_29 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -2325,7 +2325,6 @@ function ensureListingCategories() {
 }
 
 async function loadSavedListings() {
-  const grid = document.getElementById('listings-grid');
   const empty = document.getElementById('listings-empty');
 
   if (empty) {
@@ -2334,11 +2333,12 @@ async function loadSavedListings() {
   }
 
   try {
-    // IMPORTANT: lightweight select only.
-    // Older rows may contain huge base64 photos, which can stop phones loading the shop.
+    // Public/mobile-safe loading:
+    // Do NOT request image/photos here because older rows may contain huge base64 data.
+    // This makes products appear quickly on phones and computers.
     const { data, error } = await supabaseClient
       .from('listings')
-      .select('id,name,brand,price,badge,category,stripe_link,payment_link,sizes,created_at')
+      .select('id,name,brand,price,badge,category,sizes,created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -2349,14 +2349,18 @@ async function loadSavedListings() {
 
     const safeArray = (value) => {
       if (Array.isArray(value)) return value;
+
       if (typeof value === 'string' && value.trim()) {
         try {
           const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : value.split(',').map(v => v.trim()).filter(Boolean);
+          return Array.isArray(parsed)
+            ? parsed
+            : value.split(',').map(v => v.trim()).filter(Boolean);
         } catch (error) {
           return value.split(',').map(v => v.trim()).filter(Boolean);
         }
       }
+
       return [];
     };
 
@@ -2367,7 +2371,7 @@ async function loadSavedListings() {
       image: '',
       badge: item.badge || 'in-stock',
       category: item.category || 'shoes',
-      stripe_link: item.stripe_link || item.payment_link || '',
+      stripe_link: '',
       href: '#',
     }));
 
@@ -2376,6 +2380,7 @@ async function loadSavedListings() {
 
     if (!C.listings.items.length && empty) {
       empty.textContent = 'No products listed yet. Add your first product in admin.';
+      empty.style.display = 'block';
     }
   } catch (error) {
     console.error('Supabase listing load failed:', error);
@@ -2387,13 +2392,13 @@ function saveListings() {
   // Listings now save to Supabase, not localStorage.
 }
 function productPlaceholderImage(product) {
-  const name = encodeURIComponent((product && product.name) ? product.name : 'XDSOURCED');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
     <rect width="800" height="800" fill="#232d3d"/>
     <rect x="28" y="28" width="744" height="744" rx="18" fill="none" stroke="#3a4452" stroke-width="4"/>
     <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" fill="#5b8fd9" font-family="Arial, sans-serif" font-size="54" font-weight="800">XDSOURCED</text>
     <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="#8a95a8" font-family="Arial, sans-serif" font-size="28">PRODUCT PHOTO</text>
   </svg>`;
+
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -2525,7 +2530,7 @@ $('filter-row').addEventListener('click', e => {
   }
 });
 
-// Load Supabase listings after all listing render/filter functions are ready.
+// Load products after all listing render/filter functions are ready.
 ensureListingCategories();
 renderListings();
 loadSavedListings();
@@ -2592,15 +2597,10 @@ function readImageFile(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      const compressed = canvas.toDataURL('image/jpeg', quality);
-      showListingImagePreview(compressed);
+      showListingImagePreview(canvas.toDataURL('image/jpeg', quality));
     };
 
-    img.onerror = () => {
-      // Fallback if compression fails.
-      showListingImagePreview(reader.result);
-    };
-
+    img.onerror = () => showListingImagePreview(reader.result);
     img.src = reader.result;
   };
 
