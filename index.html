@@ -625,15 +625,14 @@
   .listing-badge.in-hand { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
   .listing-badge.sold-out  { background: #1a1a18; color: var(--muted); border: 1px solid var(--border); }
 
-  .listing-remove-btn {
+  .listing-remove-btn,
+  .listing-edit-btn {
     position: absolute;
     top: 12px;
-    right: 12px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: rgba(255, 255, 255, 0.08);
     color: var(--text);
     display: none;
     align-items: center;
@@ -642,8 +641,22 @@
     transition: background var(--transition), color var(--transition);
     font-size: 14px;
   }
+
+  .listing-remove-btn {
+    right: 12px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .listing-edit-btn {
+    right: 50px;
+    background: rgba(91, 143, 217, 0.20);
+  }
+
   .listing-remove-btn:hover { background: rgba(255, 255, 255, 0.16); }
-  body.admin-mode .listing-remove-btn { display: inline-flex; }
+  .listing-edit-btn:hover { background: rgba(91, 143, 217, 0.34); }
+
+  body.admin-mode .listing-remove-btn,
+  body.admin-mode .listing-edit-btn { display: inline-flex; }
 
   .listing-info {
     padding: 16px 20px 20px;
@@ -1568,6 +1581,7 @@
      SECURE ADMIN AUTH UI
      ============================================================ */
   body:not(.admin-mode) .listing-remove-btn,
+  body:not(.admin-mode) .listing-edit-btn,
   body:not(.admin-mode) .add-listing-btn {
     display: none !important;
   }
@@ -1689,6 +1703,14 @@
     .listing-remove-btn {
       top: 6px !important;
       right: 6px !important;
+      width: 22px !important;
+      height: 22px !important;
+      font-size: 10px !important;
+    }
+
+    .listing-edit-btn {
+      top: 6px !important;
+      right: 34px !important;
       width: 22px !important;
       height: 22px !important;
       font-size: 10px !important;
@@ -2088,7 +2110,7 @@ const CONFIG = {
 <div class="modal" id="add-listing-modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 class="modal-title">Add Listing</h2>
+      <h2 class="modal-title" id="listing-modal-title">Add Listing</h2>
       <button class="modal-close" id="modal-close">✕</button>
     </div>
     <form id="add-listing-form">
@@ -2420,6 +2442,7 @@ function renderListingCard(p, index) {
       <div class="listing-img">
         <img src="${imageSrc}" alt="${p.name}" loading="lazy" onerror="this.onerror=null; this.src=productPlaceholderImage({name: this.alt});" />
         <span class="listing-badge ${p.badge}">${badgeLabel[p.badge]}</span>
+        <button class="listing-edit-btn" data-product-id="${index}" title="Edit listing" aria-label="Edit ${p.name}">✎</button>
         <button class="listing-remove-btn" data-product-id="${index}" title="Remove listing" aria-label="Remove ${p.name}">✕</button>
       </div>
       <div class="listing-info">
@@ -2573,12 +2596,64 @@ const listingImagePreviewGrid = document.getElementById('listing-image-preview-g
 const adminBtn = document.getElementById('admin-btn');
 let isAdminSession = false;
 let listingImageData = [];
+let editingListingId = null;
+let editingListingIndex = null;
 
 function updateListingImagePreviewGrid() {
   listingImagePreviewGrid.innerHTML = listingImageData.map(src => `
     <img src="${src}" alt="Listing photo preview" />
   `).join('');
   listingImagePreviewGrid.hidden = listingImageData.length === 0;
+}
+
+
+function resetListingFormForAdd() {
+  editingListingId = null;
+  editingListingIndex = null;
+  form.reset();
+  listingImageData = [];
+  listingImageFile.value = '';
+  updateListingImagePreviewGrid();
+
+  const title = document.getElementById('listing-modal-title');
+  const submitBtn = form.querySelector('.btn-modal-submit');
+
+  if (title) title.textContent = 'Add Listing';
+  if (submitBtn) submitBtn.textContent = 'Add Listing';
+}
+
+function openEditListing(productIndex) {
+  if (!isAdminSession) {
+    openAdminLogin();
+    return;
+  }
+
+  const product = C.listings.items[productIndex];
+  if (!product) return;
+
+  editingListingId = product.id || null;
+  editingListingIndex = productIndex;
+
+  document.getElementById('listing-name').value = product.name || '';
+  document.getElementById('listing-brand').value = product.brand || '';
+  document.getElementById('listing-price').value = product.price || '';
+  document.getElementById('listing-badge').value = product.badge || 'in-stock';
+  document.getElementById('listing-category').value = product.category || 'shoes';
+  document.getElementById('listing-stripe-link').value = product.stripe_link || '';
+  document.getElementById('listing-sizes').value = Array.isArray(product.sizes) ? product.sizes.join(', ') : '';
+
+  const existingPhotos = product.photos && product.photos.length ? product.photos : (product.image ? [product.image] : []);
+  listingImageData = [...existingPhotos];
+  listingImageFile.value = '';
+  updateListingImagePreviewGrid();
+
+  const title = document.getElementById('listing-modal-title');
+  const submitBtn = form.querySelector('.btn-modal-submit');
+
+  if (title) title.textContent = 'Edit Listing';
+  if (submitBtn) submitBtn.textContent = 'Save Changes';
+
+  modal.classList.add('open');
 }
 
 function showListingImagePreview(src) {
@@ -2711,6 +2786,7 @@ addListingBtn.addEventListener('click', () => {
     openAdminLogin();
     return;
   }
+  resetListingFormForAdd();
   modal.classList.add('open');
 });
 
@@ -2767,16 +2843,19 @@ adminLoginForm.addEventListener('submit', async (e) => {
 
 closeBtn.addEventListener('click', () => {
   modal.classList.remove('open');
+  resetListingFormForAdd();
 });
 
 cancelBtn.addEventListener('click', () => {
   modal.classList.remove('open');
+  resetListingFormForAdd();
 });
 
 
 modal.addEventListener('click', (e) => {
   if (e.target === modal) {
     modal.classList.remove('open');
+    resetListingFormForAdd();
   }
 });
 
@@ -2796,9 +2875,9 @@ form.addEventListener('submit', async (e) => {
   const submitBtn = form.querySelector('.btn-modal-submit');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Saving...';
+  submitBtn.textContent = editingListingId ? 'Saving Changes...' : 'Saving...';
 
-  const newListing = {
+  const listingPayload = {
     name: document.getElementById('listing-name').value.trim(),
     brand: document.getElementById('listing-brand').value.trim(),
     price: document.getElementById('listing-price').value.trim(),
@@ -2814,28 +2893,37 @@ form.addEventListener('submit', async (e) => {
   };
 
   try {
-    const { error } = await supabaseClient
-      .from('listings')
-      .insert([newListing]);
+    let error = null;
+
+    if (editingListingId) {
+      const result = await supabaseClient
+        .from('listings')
+        .update(listingPayload)
+        .eq('id', editingListingId);
+
+      error = result.error;
+    } else {
+      const result = await supabaseClient
+        .from('listings')
+        .insert([listingPayload]);
+
+      error = result.error;
+    }
 
     if (error) {
-      console.error('Supabase insert failed:', error);
+      console.error('Supabase save failed:', error);
       alert('Could not save listing. Check your Supabase policies and admin login.');
       return;
     }
 
     await loadSavedListings();
 
-    form.reset();
-    listingImageData = [];
-    listingImagePreviewGrid.hidden = true;
-    listingImagePreviewGrid.innerHTML = '';
-    listingImageFile.value = '';
     modal.classList.remove('open');
-    alert('Listing saved online.');
+    resetListingFormForAdd();
+    alert(editingListingId ? 'Listing updated online.' : 'Listing saved online.');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
+    submitBtn.textContent = editingListingId ? 'Save Changes' : (originalText || 'Add Listing');
   }
 });
 
@@ -2855,6 +2943,21 @@ footerSigninBtn.addEventListener('click', async () => {
   } else {
     openAdminLogin();
   }
+});
+
+
+document.addEventListener('click', (e) => {
+  const editBtn = e.target.closest('.listing-edit-btn');
+  if (!editBtn) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (!isAdminSession) return;
+
+  const productIndex = parseInt(editBtn.dataset.productId, 10);
+  if (Number.isNaN(productIndex)) return;
+
+  openEditListing(productIndex);
 });
 
 document.addEventListener('click', async (e) => {
@@ -3063,7 +3166,7 @@ productAddToBasket.addEventListener('click', () => {
 document.addEventListener('click', (e) => {
   const card = e.target.closest('.listing-card');
   if (!card) return;
-  if (e.target.closest('.add-to-basket-btn') || e.target.closest('.listing-remove-btn')) return;
+  if (e.target.closest('.add-to-basket-btn') || e.target.closest('.listing-remove-btn') || e.target.closest('.listing-edit-btn')) return;
   if (e.target.closest('.modal') || e.target.closest('.btn')) return;
 
   const productId = parseInt(card.dataset.productId, 10);
