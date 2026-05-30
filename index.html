@@ -622,7 +622,7 @@
     border-radius: 100px;
   }
   .listing-badge.in-stock  { background: var(--accent); color: #0a0a09; }
-  .listing-badge.can-order { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .listing-badge.in-hand { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
   .listing-badge.sold-out  { background: #1a1a18; color: var(--muted); border: 1px solid var(--border); }
 
   .listing-remove-btn {
@@ -1819,7 +1819,7 @@ const CONFIG = {
   /* ── Nav links ─────────────────────────────────────────── */
   nav: [
     { label: "In-Stock",  href: "#listings-section"  },
-    { label: "Can Order", href: "#" },
+    { label: "In-Hand", href: "#listings-section" },
     { label: "About",     href: "#rts-section"     },
     { label: "Contact",   href: "#"   },
   ],
@@ -1890,6 +1890,7 @@ const CONFIG = {
     heading: "Latest Drops",
     filters: ["All", "In Stock"],   // ← remove filters you don't want
     categories: [
+      { key: "inhand", label: "In-Hand", description: "Items currently in hand and ready to ship." },
       { key: "shoes", label: "Shoes", description: "Footwear and future shoe drops." },
       { key: "clothes", label: "Clothes", description: "Hoodies, tees, jackets, cargos, and streetwear pieces." },
       { key: "accessories", label: "Accessories", description: "Caps, bags, jewellery, and finishing pieces." },
@@ -2117,6 +2118,7 @@ const CONFIG = {
       <div class="form-group">
         <label class="form-label">Category *</label>
         <select id="listing-category" class="form-select" required>
+          <option value="inhand">In-Hand</option>
           <option value="shoes">Shoes</option>
           <option value="clothes">Clothes</option>
           <option value="accessories">Accessories</option>
@@ -2302,8 +2304,8 @@ $('cta-btn').href = C.ctaStrip.cta.href;
 $('listings-label').textContent = C.listings.label;
 $('listings-heading').textContent = C.listings.heading;
 
-const badgeLabel = { 'in-stock': 'In Stock', 'can-order': 'Can Order', 'sold-out': 'Sold Out' };
-const categoryLabel = { shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories' };
+const badgeLabel = { 'in-stock': 'In Stock', 'in-hand': 'In Hand', 'sold-out': 'Sold Out' };
+const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories' };
 let activeStatusFilter = 'All';
 let activeCategoryFilter = 'all';
 
@@ -2312,6 +2314,7 @@ function guessListingCategory(product) {
 
   const text = `${product.name || ''} ${product.brand || ''}`.toLowerCase();
 
+  if (/(in[- ]?hand|ready[- ]?to[- ]?ship)/.test(text)) return 'inhand';
   if (/(hoodie|jacket|tee|t-shirt|shirt|cargo|pants|jeans|tracksuit|sweatshirt|shorts)/.test(text)) return 'clothes';
   if (/(cap|hat|bag|beanie|chain|watch|sunglasses|belt|accessory|wallet)/.test(text)) return 'accessories';
 
@@ -2433,6 +2436,7 @@ function renderListingCard(p, index) {
 function renderListings() {
   const grid = $('listings-grid');
   const categories = C.listings.categories || [
+    { key: 'inhand', label: 'In-Hand', description: 'Items currently in hand and ready to ship.' },
     { key: 'shoes', label: 'Shoes', description: 'Footwear and future shoe drops.' },
     { key: 'clothes', label: 'Clothes', description: 'Hoodies, tees, jackets, cargos, and streetwear pieces.' },
     { key: 'accessories', label: 'Accessories', description: 'Caps, bags, jewellery, and finishing pieces.' },
@@ -2479,7 +2483,7 @@ function applyListingFilters() {
   cards.forEach(card => {
     const statusMatch = activeStatusFilter === 'All' ||
       (activeStatusFilter === 'In Stock'  && card.dataset.badge === 'in-stock')  ||
-      (activeStatusFilter === 'Can Order' && card.dataset.badge === 'can-order') ||
+      (activeStatusFilter === 'In Hand' && card.dataset.badge === 'In-Hand') ||
       (activeStatusFilter === 'Sold Out'  && card.dataset.badge === 'sold-out');
 
     const categoryMatch = activeCategoryFilter === 'all' || card.dataset.category === activeCategoryFilter;
@@ -3429,7 +3433,7 @@ document.addEventListener('click', (event) => {
     (
       label.includes('request') ||
       label.includes('quote') ||
-      label.includes('can order') ||
+      label.includes('in hand') ||
       label.includes('contact')
     )
   ) {
