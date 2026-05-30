@@ -2065,7 +2065,7 @@ const CONFIG = {
     <form id="admin-login-form">
       <div class="form-group">
         <label class="form-label">Admin Email</label>
-        <input type="email" id="admin-login-email" class="form-input" placeholder="Xyedewet7@gmail.com" autocomplete="email" required />
+        <input type="email" id="admin-login-email" class="form-input" placeholder="Admin Email" autocomplete="email" required />
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
@@ -2677,7 +2677,7 @@ function updateAdminUI(isAdmin) {
 }
 
 function openAdminLogin() {
-  if (adminLoginEmail) adminLoginEmail.value = ADMIN_EMAIL;
+  if (adminLoginEmail) adminLoginEmail.value = '';
   if (adminLoginPassword) adminLoginPassword.value = '';
   adminLoginModal.classList.add('open');
   setTimeout(() => adminLoginPassword && adminLoginPassword.focus(), 50);
