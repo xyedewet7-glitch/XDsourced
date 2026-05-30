@@ -1820,6 +1820,7 @@ const CONFIG = {
   nav: [
     { label: "In-Stock",  href: "#listings-section"  },
     { label: "In-Hand", href: "#listings-section" },
+    { label: "For Her", href: "#listings-section" },
     { label: "About",     href: "#rts-section"     },
     { label: "Contact",   href: "#"   },
   ],
@@ -1894,6 +1895,7 @@ const CONFIG = {
       { key: "shoes", label: "Shoes", description: "Footwear and future shoe drops." },
       { key: "clothes", label: "Clothes", description: "Hoodies, tees, jackets, cargos, and streetwear pieces." },
       { key: "accessories", label: "Accessories", description: "Caps, bags, jewellery, and finishing pieces." },
+      { key: "forher", label: "For Her", description: "Women’s shoes, clothes, bags and accessories." },
     ],
     items: [],
   },
@@ -2122,6 +2124,7 @@ const CONFIG = {
           <option value="shoes">Shoes</option>
           <option value="clothes">Clothes</option>
           <option value="accessories">Accessories</option>
+          <option value="forher">For Her</option>
         </select>
       </div>
 
@@ -2305,7 +2308,7 @@ $('listings-label').textContent = C.listings.label;
 $('listings-heading').textContent = C.listings.heading;
 
 const badgeLabel = { 'in-stock': 'In Stock', 'in-hand': 'In Hand', 'sold-out': 'Sold Out' };
-const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories' };
+const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories', forher: 'For Her' };
 let activeStatusFilter = 'All';
 let activeCategoryFilter = 'all';
 
@@ -2315,6 +2318,7 @@ function guessListingCategory(product) {
   const text = `${product.name || ''} ${product.brand || ''}`.toLowerCase();
 
   if (/(in[- ]?hand|ready[- ]?to[- ]?ship)/.test(text)) return 'inhand';
+  if (/(for her|women|womens|woman|girls|girl|ugg|samba|gazelle|skims|handbag|shoulder bag)/.test(text)) return 'forher';
   if (/(hoodie|jacket|tee|t-shirt|shirt|cargo|pants|jeans|tracksuit|sweatshirt|shorts)/.test(text)) return 'clothes';
   if (/(cap|hat|bag|beanie|chain|watch|sunglasses|belt|accessory|wallet)/.test(text)) return 'accessories';
 
@@ -2440,6 +2444,7 @@ function renderListings() {
     { key: 'shoes', label: 'Shoes', description: 'Footwear and future shoe drops.' },
     { key: 'clothes', label: 'Clothes', description: 'Hoodies, tees, jackets, cargos, and streetwear pieces.' },
     { key: 'accessories', label: 'Accessories', description: 'Caps, bags, jewellery, and finishing pieces.' },
+    { key: 'forher', label: 'For Her', description: 'Women’s shoes, clothes, bags and accessories.' },
   ];
 
   const html = categories.map(category => {
