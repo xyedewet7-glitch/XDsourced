@@ -987,6 +987,33 @@
     max-height: 180px;
     object-fit: cover;
   }
+
+  .clear-images-btn {
+    margin-top: 10px;
+    display: none;
+    width: fit-content;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .clear-images-btn.visible {
+    display: inline-flex;
+  }
+
+  .clear-images-btn:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
   .image-preview {
     margin-top: 12px;
     width: 100%;
@@ -2157,6 +2184,7 @@ const CONFIG = {
           <input type="file" id="listing-image-file" class="form-input" accept="image/*" multiple />
         </div>
         <div class="image-preview-grid" id="listing-image-preview-grid" hidden></div>
+        <button type="button" class="clear-images-btn" id="clear-listing-images">Clear / Replace Photo</button>
       </div>
       <div class="form-group">
         <label class="form-label">Stripe Payment Link (Optional)</label>
@@ -2593,6 +2621,7 @@ const form = document.getElementById('add-listing-form');
 const listingImageZone = document.getElementById('listing-image-zone');
 const listingImageFile = document.getElementById('listing-image-file');
 const listingImagePreviewGrid = document.getElementById('listing-image-preview-grid');
+const clearListingImagesBtn = document.getElementById('clear-listing-images');
 const adminBtn = document.getElementById('admin-btn');
 let isAdminSession = false;
 let listingImageData = [];
@@ -2604,6 +2633,10 @@ function updateListingImagePreviewGrid() {
     <img src="${src}" alt="Listing photo preview" />
   `).join('');
   listingImagePreviewGrid.hidden = listingImageData.length === 0;
+
+  if (clearListingImagesBtn) {
+    clearListingImagesBtn.classList.toggle('visible', listingImageData.length > 0);
+  }
 }
 
 
@@ -2716,6 +2749,14 @@ listingImageZone.addEventListener('paste', (e) => {
 listingImageZone.addEventListener('click', () => {
   listingImageFile.click();
 });
+
+if (clearListingImagesBtn) {
+  clearListingImagesBtn.addEventListener('click', () => {
+    listingImageData = [];
+    listingImageFile.value = '';
+    updateListingImagePreviewGrid();
+  });
+}
 
 
 const ADMIN_EMAIL = "Xyedewet7@gmail.com";
