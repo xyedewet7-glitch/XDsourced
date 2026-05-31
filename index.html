@@ -2426,12 +2426,12 @@ async function loadSavedListings() {
 
     C.listings.items = (data || []).map(item => ({
       ...item,
-      photos: [],
+      photos: item.photos ? safeArray(item.photos) : [],
       sizes: safeArray(item.sizes),
       image: item.image || '',
       badge: item.badge || 'in-stock',
       category: item.category || 'shoes',
-      stripe_link: '',
+      stripe_link: item.stripe_link || '',
       href: '#',
     }));
 
@@ -2703,6 +2703,16 @@ function updateListingImagePreviewGrid() {
 }
 
 
+
+function getListingSizesFromInput() {
+  const raw = document.getElementById('listing-sizes').value || '';
+
+  return raw
+    .split(/[,\n]/)
+    .map(size => size.trim())
+    .filter(Boolean);
+}
+
 function resetListingFormForAdd() {
   editingListingId = null;
   editingListingIndex = null;
@@ -2736,7 +2746,9 @@ function openEditListing(productIndex) {
   document.getElementById('listing-badge').value = product.badge || 'in-stock';
   document.getElementById('listing-category').value = product.category || 'shoes';
   document.getElementById('listing-stripe-link').value = product.stripe_link || '';
-  document.getElementById('listing-sizes').value = Array.isArray(product.sizes) ? product.sizes.join(', ') : '';
+  document.getElementById('listing-sizes').value = Array.isArray(product.sizes)
+    ? product.sizes.join(', ')
+    : (typeof product.sizes === 'string' ? product.sizes : '');
 
   const existingPhotos = product.photos && product.photos.length ? product.photos : (product.image ? [product.image] : []);
   listingImageData = [...existingPhotos];
@@ -3002,10 +3014,7 @@ form.addEventListener('submit', async (e) => {
     badge: document.getElementById('listing-badge').value,
     category: document.getElementById('listing-category').value,
     stripe_link: document.getElementById('listing-stripe-link').value.trim(),
-    sizes: document.getElementById('listing-sizes').value
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s),
+    sizes: getListingSizesFromInput(),
   };
 
   try {
