@@ -1850,10 +1850,42 @@
     visibility: visible !important;
   }
 
+
+  /* HARD FIX: force the top/right hero image area to never display on desktop or mobile */
+  .hero > .hero-image,
+  #hero-image {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background: none !important;
+    background-image: none !important;
+  }
+
+  .hero {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<script>
+/* HARD LAUNCH FIX: remove top/right desktop hero image only. Lower sourcing image remains. */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.hero-image, #hero-image').forEach(function (el) {
+    el.remove();
+  });
+  var hero = document.querySelector('.hero');
+  if (hero) {
+    hero.style.gridTemplateColumns = '1fr';
+  }
+});
+</script>
+
 
 <script>
 (function () {
@@ -2027,7 +2059,7 @@ const CONFIG = {
     <p class="hero-sub" id="hero-sub"></p>
     <div class="hero-ctas" id="hero-ctas"></div>
   </div>
-  <div class="hero-image" id="hero-image"></div>
+  <!-- Top/right desktop hero image removed for launch stability -->
 </div>
 
 <!-- TICKER -->
