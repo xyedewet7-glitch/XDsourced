@@ -2184,6 +2184,7 @@ const CONFIG = {
           <input type="file" id="listing-image-file" class="form-input" accept="image/*" multiple />
         </div>
         <div class="image-preview-grid" id="listing-image-preview-grid" hidden></div>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px;">Photos now upload to Supabase Storage for faster loading. Use compressed JPEGs around 200KB–700KB.</p>
         <button type="button" class="clear-images-btn" id="clear-listing-images">Clear / Replace Photo</button>
       </div>
       <div class="form-group">
@@ -2286,6 +2287,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 console.log('XDSOURCEDIT connected to Supabase listings table');
 const CHECKOUT_FUNCTION_URL = 'https://yuhxgdalgeodkhbgiybj.functions.supabase.co/create-checkout-session';
+const LISTING_IMAGES_BUCKET = 'listing-images';
 </script>
 
 <script>
@@ -2396,7 +2398,7 @@ async function loadSavedListings() {
     // Avoids the heavier photos/gallery array so phones do not get overloaded.
     const { data, error } = await supabaseClient
       .from('listings')
-      .select('id,name,brand,price,badge,category,sizes,image,created_at')
+      .select('id,name,brand,price,badge,category,sizes,image,stripe_link,created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -2627,6 +2629,67 @@ let isAdminSession = false;
 let listingImageData = [];
 let editingListingId = null;
 let editingListingIndex = null;
+
+
+function dataUrlToBlob(dataUrl) {
+  const parts = dataUrl.split(',');
+  const mimeMatch = parts[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new Blob([bytes], { type: mime });
+}
+
+async function uploadListingPhotoToStorage(photo, index = 0) {
+  // If this is already a URL, keep it. Only upload new pasted/uploaded data images.
+  if (typeof photo === 'string' && !photo.startsWith('data:image')) {
+    return photo;
+  }
+
+  const blob = dataUrlToBlob(photo);
+  const fileExt = blob.type.includes('png') ? 'png' : 'jpg';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${index}.${fileExt}`;
+  const filePath = `products/${fileName}`;
+
+  const { error } = await supabaseClient
+    .storage
+    .from(LISTING_IMAGES_BUCKET)
+    .upload(filePath, blob, {
+      cacheControl: '31536000',
+      upsert: false,
+      contentType: blob.type || 'image/jpeg',
+    });
+
+  if (error) {
+    console.error('Supabase Storage upload failed:', error);
+    throw new Error('Photo upload failed. Check your Storage bucket and policies.');
+  }
+
+  const { data } = supabaseClient
+    .storage
+    .from(LISTING_IMAGES_BUCKET)
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+
+async function uploadListingPhotosToStorage(photos) {
+  const cleanedPhotos = (photos || []).filter(Boolean);
+  const uploadedUrls = [];
+
+  for (let i = 0; i < cleanedPhotos.length; i++) {
+    const publicUrl = await uploadListingPhotoToStorage(cleanedPhotos[i], i);
+    uploadedUrls.push(publicUrl);
+  }
+
+  return uploadedUrls;
+}
+
 
 function updateListingImagePreviewGrid() {
   listingImagePreviewGrid.innerHTML = listingImageData.map(src => `
@@ -2916,14 +2979,26 @@ form.addEventListener('submit', async (e) => {
   const submitBtn = form.querySelector('.btn-modal-submit');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = editingListingId ? 'Saving Changes...' : 'Saving...';
+  submitBtn.textContent = 'Uploading Photo...';
+
+  let uploadedPhotoUrls = [];
+
+  try {
+    uploadedPhotoUrls = await uploadListingPhotosToStorage(listingImageData);
+  } catch (uploadError) {
+    console.error(uploadError);
+    alert(uploadError.message || 'Could not upload photo. Check Supabase Storage setup.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = editingListingId ? 'Save Changes' : (originalText || 'Add Listing');
+    return;
+  }
 
   const listingPayload = {
     name: document.getElementById('listing-name').value.trim(),
     brand: document.getElementById('listing-brand').value.trim(),
     price: document.getElementById('listing-price').value.trim(),
-    image: listingImageData[0],
-    photos: [...listingImageData],
+    image: uploadedPhotoUrls[0],
+    photos: [...uploadedPhotoUrls],
     badge: document.getElementById('listing-badge').value,
     category: document.getElementById('listing-category').value,
     stripe_link: document.getElementById('listing-stripe-link').value.trim(),
