@@ -1826,6 +1826,30 @@
     }
   }
 
+
+  /* ============================================================
+     LAUNCH FIX: no top hero image + mobile listings always visible
+     ============================================================ */
+  .hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-image {
+    display: none !important;
+    background-image: none !important;
+  }
+
+  #listings-section.fade-in,
+  #listings-section.fade-in.visible {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  #listings-grid,
+  #filter-row {
+    visibility: visible !important;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2284,8 +2308,15 @@ const CONFIG = {
 <script>
 const SUPABASE_URL = "https://yuhxgdalgeodkhbgiybj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aHhnZGFsZ2VvZGtoYmdpeWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjI0MjUsImV4cCI6MjA5NTAzODQyNX0.put93bDFygxMKJDdppLzpSlUVMMcTNGG_z1qJbXF-1Y";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-console.log('XDSOURCEDIT connected to Supabase listings table');
+const supabaseClient = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+if (supabaseClient) {
+  console.log('XDSOURCEDIT connected to Supabase listings table');
+} else {
+  console.warn('Supabase library did not load yet. Products may need a refresh.');
+}
 const CHECKOUT_FUNCTION_URL = 'https://yuhxgdalgeodkhbgiybj.functions.supabase.co/create-checkout-session';
 const LISTING_IMAGES_BUCKET = 'listing-images';
 </script>
@@ -2308,7 +2339,7 @@ $('hero-headline').innerHTML = C.hero.headline.map((line, i) =>
   i === C.hero.accentLine ? `<em>${line}</em>` : line
 ).join('<br>');
 $('hero-sub').textContent = C.description;
-$('hero-image').style.backgroundImage = `url('${C.hero.image}')`;
+// Launch fix: no top hero image. The sourcing image stays in the lower sourcing section.
 $('hero-ctas').innerHTML = C.hero.ctas.map(b =>
   `<a class="btn btn-${b.style} btn-arrow" href="${b.href}">${b.label}</a>`
 ).join('');
@@ -2359,7 +2390,7 @@ $('cta-btn').href = C.ctaStrip.cta.href;
 $('listings-label').textContent = C.listings.label;
 $('listings-heading').textContent = C.listings.heading;
 
-const badgeLabel = { 'in-stock': 'In Stock', 'in-hand': 'In Hand', 'sold-out': 'Sold Out' };
+const badgeLabel = { 'in-stock': 'In Stock', 'in-hand': 'In Hand', 'can-order': 'Can Order', 'sold-out': 'Sold Out' };
 const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories', forher: 'For Her' };
 let activeStatusFilter = 'All';
 let activeCategoryFilter = 'all';
@@ -2393,6 +2424,13 @@ async function loadSavedListings() {
   }
 
   try {
+    if (!supabaseClient) {
+      console.warn('Supabase client unavailable; showing category sections only.');
+      renderListings();
+      if (empty) empty.textContent = 'Products are loading. Please refresh if they do not appear.';
+      return;
+    }
+
     // Public/mobile-safe loading:
     // Loads the single main image so product photos show.
     // Avoids the heavier photos/gallery array so phones do not get overloaded.
@@ -2541,7 +2579,7 @@ function applyListingFilters() {
   cards.forEach(card => {
     const statusMatch = activeStatusFilter === 'All' ||
       (activeStatusFilter === 'In Stock'  && card.dataset.badge === 'in-stock')  ||
-      (activeStatusFilter === 'In Hand' && card.dataset.badge === 'In-Hand') ||
+      (activeStatusFilter === 'In Hand' && card.dataset.badge === 'in-hand') ||
       (activeStatusFilter === 'Sold Out'  && card.dataset.badge === 'sold-out');
 
     const categoryMatch = activeCategoryFilter === 'all' || card.dataset.category === activeCategoryFilter;
