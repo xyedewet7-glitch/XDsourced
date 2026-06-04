@@ -3057,11 +3057,6 @@ adminLoginForm.addEventListener('submit', async (e) => {
   const email = adminLoginEmail.value.trim();
   const password = adminLoginPassword.value;
 
-  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    alert('This email is not allowed as admin.');
-    return;
-  }
-
   const submitBtn = adminLoginForm.querySelector('.btn-modal-submit');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
