@@ -2358,6 +2358,16 @@ function esc(str) {
   return d.innerHTML;
 }
 
+function safeBadgeValue(value) {
+  const allowed = ['in-stock', 'in-hand', 'can-order', 'sold-out'];
+  return allowed.includes(value) ? value : 'in-stock';
+}
+
+function safeCategoryValue(value) {
+  const allowed = ['inhand', 'shoes', 'clothes', 'accessories', 'forher'];
+  return allowed.includes(value) ? value : 'shoes';
+}
+
 const SUPABASE_URL = "https://yuhxgdalgeodkhbgiybj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aHhnZGFsZ2VvZGtoYmdpeWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjI0MjUsImV4cCI6MjA5NTAzODQyNX0.put93bDFygxMKJDdppLzpSlUVMMcTNGG_z1qJbXF-1Y";
 const supabaseClient = window.supabase
@@ -3154,8 +3164,8 @@ form.addEventListener('submit', async (e) => {
     price: document.getElementById('listing-price').value.trim(),
     image: uploadedPhotoUrls[0],
     photos: [...uploadedPhotoUrls],
-    badge: document.getElementById('listing-badge').value,
-    category: document.getElementById('listing-category').value,
+    badge: safeBadgeValue(document.getElementById('listing-badge').value),
+    category: safeCategoryValue(document.getElementById('listing-category').value),
     stripe_link: document.getElementById('listing-stripe-link').value.trim(),
     sizes: getListingSizesFromInput(),
   };
