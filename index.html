@@ -2731,24 +2731,26 @@ const listingImageFile = document.getElementById('listing-image-file');
 const listingImagePreviewGrid = document.getElementById('listing-image-preview-grid');
 const clearListingImagesBtn = document.getElementById('clear-listing-images');
 const adminBtn = document.getElementById('admin-btn');
-/* SECURITY FIX: Wrap admin state in a closure so it cannot be trivially
-   overridden from the browser console with isAdminSession = true.
-   Note: Supabase RLS is the real security barrier — this is UI hardening. */
-const _adminState = (() => {
-  let _val = false;
+const adminState = (() => {
+  let value = false;
+
   return {
-    get isAdmin() { return _val; },
-    set isAdmin(v) { _val = Boolean(v); }
+    get() {
+      return value;
+    },
+    set(nextValue) {
+      value = Boolean(nextValue);
+    },
   };
 })();
-/* Backwards-compat shim — internal code still uses isAdminSession variable name */
-Object.defineProperty(window, 'isAdminSession', {
-  get() { return _adminState.isAdmin; },
-  set(v) { _adminState.isAdmin = v; },
-  configurable: false
-});
-let isAdminSession = false; // kept for variable hoisting — overridden by defineProperty above
-let listingImageData = [];
+
+function getAdminSession() {
+  return adminState.get();
+}
+
+function setAdminSession(value) {
+  adminState.set(value);
+}
 let editingListingId = null;
 let editingListingIndex = null;
 
@@ -2856,7 +2858,7 @@ function resetListingFormForAdd() {
 }
 
 function openEditListing(productIndex) {
-  if (!isAdminSession) {
+  if (!getAdminSession()) {
     openAdminLogin();
     return;
   }
@@ -3009,8 +3011,8 @@ function isAllowedAdminUser(user) {
 async function checkAdminStatus() {
   const { data } = await supabaseClient.auth.getSession();
   const user = data && data.session ? data.session.user : null;
-  isAdminSession = isAllowedAdminUser(user);
-  updateAdminUI(isAdminSession);
+  setAdminSession(isAllowedAdminUser(user));
+  updateAdminUI(getAdminSession());
 }
 
 function updateAdminUI(isAdmin) {
@@ -3043,12 +3045,12 @@ function closeAdminLogin() {
 
 async function adminLogout() {
   await supabaseClient.auth.signOut();
-  isAdminSession = false;
+  setAdminSession(false);
   updateAdminUI(false);
 }
 
 adminBtn.addEventListener('click', async () => {
-  if (isAdminSession) {
+  if (getAdminSession()) {
     await adminLogout();
   } else {
     openAdminLogin();
@@ -3056,7 +3058,7 @@ adminBtn.addEventListener('click', async () => {
 });
 
 addListingBtn.addEventListener('click', () => {
-  if (!isAdminSession) {
+  if (!getAdminSession()) {
     openAdminLogin();
     return;
   }
@@ -3100,7 +3102,7 @@ adminLoginForm.addEventListener('submit', async (e) => {
       return;
     }
 
-    isAdminSession = true;
+    setAdminSession(true);
     updateAdminUI(true);
     closeAdminLogin();
     alert('Admin access granted.');
@@ -3131,7 +3133,7 @@ modal.addEventListener('click', (e) => {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  if (!isAdminSession) {
+  if (!getAdminSession()) {
     openAdminLogin();
     return;
   }
@@ -3210,13 +3212,13 @@ checkAdminStatus();
 
 supabaseClient.auth.onAuthStateChange((_event, session) => {
   const user = session ? session.user : null;
-  isAdminSession = isAllowedAdminUser(user);
-  updateAdminUI(isAdminSession);
+  setAdminSession(isAllowedAdminUser(user));
+  updateAdminUI(getAdminSession());
 });
 
 // Footer sign-in button
 footerSigninBtn.addEventListener('click', async () => {
-  if (isAdminSession) {
+  if (getAdminSession()) {
     alert('You are already logged in as admin.');
   } else {
     openAdminLogin();
@@ -3230,7 +3232,7 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
 
-  if (!isAdminSession) return;
+  if (!getAdminSession()) return;
 
   const productIndex = parseInt(editBtn.dataset.productId, 10);
   if (Number.isNaN(productIndex)) return;
@@ -3241,7 +3243,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', async (e) => {
   const removeBtn = e.target.closest('.listing-remove-btn');
   if (!removeBtn) return;
-  if (!isAdminSession) return;
+  if (!getAdminSession()) return;
 
   const productIndex = parseInt(removeBtn.dataset.productId, 10);
   if (Number.isNaN(productIndex)) return;
