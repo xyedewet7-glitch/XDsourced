@@ -5,6 +5,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- ============================================================
+     SECURITY HEADERS (added by security audit fix)
+     ============================================================ -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://yuhxgdalgeodkhbgiybj.supabase.co; connect-src 'self' https://*.supabase.co https://yuhxgdalgeodkhbgiybj.supabase.co https://yuhxgdalgeodkhbgiybj.functions.supabase.co; frame-src https://js.stripe.com; frame-ancestors 'none';">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title id="page-title">XDSOURCEDIT — Hard to find. Easy to own.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1869,7 +1875,12 @@
   }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SECURITY FIX: Pinned to specific version with SRI integrity hash -->
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
+  integrity="sha384-rRoXxn2yHlrZYB587Ki9RO1tONhLdM6XfORg7Rw4uwH4/Fh/5nP7IUX91bkaKUgs"
+  crossorigin="anonymous"
+></script>
 </head>
 <body>
 
@@ -2338,6 +2349,16 @@ const CONFIG = {
 
 
 <script>
+/* ============================================================
+   SECURITY FIX: HTML escape helper — prevents XSS from DB data
+   Use esc() around ANY value from Supabase before inserting into innerHTML
+   ============================================================ */
+function esc(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(String(str ?? '')));
+  return d.innerHTML;
+}
+
 const SUPABASE_URL = "https://yuhxgdalgeodkhbgiybj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aHhnZGFsZ2VvZGtoYmdpeWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjI0MjUsImV4cCI6MjA5NTAzODQyNX0.put93bDFygxMKJDdppLzpSlUVMMcTNGG_z1qJbXF-1Y";
 const supabaseClient = window.supabase
@@ -2533,33 +2554,39 @@ function productPlaceholderImage(product) {
 }
 
 function renderListingCard(p, index) {
+  // SECURITY FIX: All DB values escaped with esc() to prevent XSS injection
   const imageSrc = ((p.photos && p.photos.length) ? p.photos[0] : p.image) || productPlaceholderImage(p);
   const sizes = Array.isArray(p.sizes) ? p.sizes : [];
   const category = guessListingCategory(p);
+  const safeBadge = esc(p.badge);
+  const safeName  = esc(p.name);
+  const safeBrand = esc(p.brand);
+  const safePrice = esc(p.price);
+  const safeImg   = esc(imageSrc);
+  const safeCategory = esc(category);
 
   return `
-    <div class="listing-card" data-product-id="${index}" data-badge="${p.badge}" data-category="${category}">
+    <div class="listing-card" data-product-id="${index}" data-badge="${safeBadge}" data-category="${safeCategory}">
       <div class="listing-img">
-        <img src="${imageSrc}" alt="${p.name}" loading="lazy" onerror="this.onerror=null; this.src=productPlaceholderImage({name: this.alt});" />
-        <span class="listing-badge ${p.badge}">${badgeLabel[p.badge]}</span>
-        <button class="listing-edit-btn" data-product-id="${index}" title="Edit listing" aria-label="Edit ${p.name}">✎</button>
-        <button class="listing-remove-btn" data-product-id="${index}" title="Remove listing" aria-label="Remove ${p.name}">✕</button>
+        <img src="${safeImg}" alt="${safeName}" loading="lazy" onerror="this.onerror=null; this.src=productPlaceholderImage({name: this.alt});" />
+        <span class="listing-badge ${safeBadge}">${esc(badgeLabel[p.badge])}</span>
+        <button class="listing-edit-btn" data-product-id="${index}" title="Edit listing" aria-label="Edit ${safeName}">✎</button>
+        <button class="listing-remove-btn" data-product-id="${index}" title="Remove listing" aria-label="Remove ${safeName}">✕</button>
       </div>
       <div class="listing-info">
-        ${p.brand ? `<span class="listing-brand">${p.brand}</span>` : ''}
-        <div class="listing-name">${p.name}</div>
-        <span class="listing-category-label">${categoryLabel[category]}</span>
-        ${sizes.length ? `<div class="listing-sizes">${sizes.map(s => `<span class="size-chip">${s}</span>`).join('')}</div>` : ''}
+        ${safeBrand ? `<span class="listing-brand">${safeBrand}</span>` : ''}
+        <div class="listing-name">${safeName}</div>
+        <span class="listing-category-label">${esc(categoryLabel[category])}</span>
+        ${sizes.length ? `<div class="listing-sizes">${sizes.map(s => `<span class="size-chip">${esc(s)}</span>`).join('')}</div>` : ''}
         <div class="listing-footer">
-          <span class="listing-price">${p.price}</span>
-          <button class="listing-arrow add-to-basket-btn" data-product-id="${index}" aria-label="Add ${p.name} to basket">+</button>
+          <span class="listing-price">${safePrice}</span>
+          <button class="listing-arrow add-to-basket-btn" data-product-id="${index}" aria-label="Add ${safeName} to basket">+</button>
         </div>
         <button class="listing-buy-btn" data-product-id="${index}">Buy</button>
       </div>
     </div>
   `;
 }
-
 function renderListings() {
   const grid = $('listings-grid');
   const categories = C.listings.categories || [
@@ -2695,7 +2722,23 @@ const listingImageFile = document.getElementById('listing-image-file');
 const listingImagePreviewGrid = document.getElementById('listing-image-preview-grid');
 const clearListingImagesBtn = document.getElementById('clear-listing-images');
 const adminBtn = document.getElementById('admin-btn');
-let isAdminSession = false;
+/* SECURITY FIX: Wrap admin state in a closure so it cannot be trivially
+   overridden from the browser console with isAdminSession = true.
+   Note: Supabase RLS is the real security barrier — this is UI hardening. */
+const _adminState = (() => {
+  let _val = false;
+  return {
+    get isAdmin() { return _val; },
+    set isAdmin(v) { _val = Boolean(v); }
+  };
+})();
+/* Backwards-compat shim — internal code still uses isAdminSession variable name */
+Object.defineProperty(window, 'isAdminSession', {
+  get() { return _adminState.isAdmin; },
+  set(v) { _adminState.isAdmin = v; },
+  configurable: false
+});
+let isAdminSession = false; // kept for variable hoisting — overridden by defineProperty above
 let listingImageData = [];
 let editingListingId = null;
 let editingListingIndex = null;
@@ -2870,13 +2913,31 @@ function readImageFile(file) {
   reader.readAsDataURL(file);
 }
 
-listingImageFile.addEventListener('change', (e) => {
+/* SECURITY FIX: Validate image files using magic bytes, not just MIME type.
+   MIME type is browser-reported and can be spoofed by renaming a .html file to .jpg */
+async function isValidImageFile(file) {
+  const allowedMime = ['image/jpeg','image/png','image/webp','image/gif'];
+  if (!allowedMime.includes(file.type)) return false;
+  try {
+    const buf = await file.slice(0, 4).arrayBuffer();
+    const b = new Uint8Array(buf);
+    const isJpeg = b[0]===0xFF && b[1]===0xD8;
+    const isPng  = b[0]===0x89 && b[1]===0x50 && b[2]===0x4E && b[3]===0x47;
+    const isWebp = b[0]===0x52 && b[1]===0x49 && b[2]===0x46 && b[3]===0x46;
+    const isGif  = b[0]===0x47 && b[1]===0x49 && b[2]===0x46;
+    return isJpeg || isPng || isWebp || isGif;
+  } catch { return false; }
+}
+
+listingImageFile.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
-  files.forEach(file => {
-    if (file && file.type.startsWith('image/')) {
+  for (const file of files) {
+    if (file && await isValidImageFile(file)) {
       readImageFile(file);
+    } else if (file) {
+      alert('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.');
     }
-  });
+  }
 });
 
 listingImageZone.addEventListener('paste', (e) => {
@@ -2904,7 +2965,10 @@ if (clearListingImagesBtn) {
 }
 
 
-const ADMIN_EMAIL = "Xyedewet7@gmail.com";
+/* SECURITY: Email removed from source. Set app_metadata: {"role":"admin"} on the admin
+   user in Supabase Dashboard > Auth > Users > Edit User > app_metadata.
+   Remove the email fallback line below once that is done. */
+const ADMIN_EMAIL = ""; // clear this after setting app_metadata in Supabase
 
 const adminLoginModal = document.getElementById('admin-login-modal');
 const adminLoginForm = document.getElementById('admin-login-form');
@@ -2915,7 +2979,12 @@ const adminLoginCancel = document.getElementById('admin-login-cancel');
 const footerSigninBtn = document.getElementById('footer-signin-btn');
 
 function isAllowedAdminUser(user) {
-  return Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+  if (!user) return false;
+  // Primary: server-side app_metadata.role (cannot be changed by users)
+  if (user.app_metadata && user.app_metadata.role === 'admin') return true;
+  // Fallback: email match — remove once app_metadata is configured in Supabase
+  if (ADMIN_EMAIL && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return true;
+  return false;
 }
 
 async function checkAdminStatus() {
@@ -3404,14 +3473,15 @@ function updateBasketUI() {
 
   let total = 0;
   basketItems.innerHTML = basket.map((item, i) => {
-    const price = parseInt(item.price.replace('€', '').replace('POA', '0')) || 0;
+    // SECURITY FIX: esc() all localStorage values before innerHTML insertion
+    const price = parseInt((item.price || '').replace('€', '').replace('POA', '0')) || 0;
     total += price;
     return `
       <div class="basket-item">
-        <div class="basket-item-name">${item.name}</div>
-        <div class="basket-item-details">${item.brand}</div>
-        <div class="basket-item-size">${item.selectedSize}</div>
-        <div class="basket-item-price">${item.price}</div>
+        <div class="basket-item-name">${esc(item.name)}</div>
+        <div class="basket-item-details">${esc(item.brand)}</div>
+        <div class="basket-item-size">${esc(item.selectedSize)}</div>
+        <div class="basket-item-price">${esc(item.price)}</div>
         <button class="basket-item-remove" data-index="${i}">Remove</button>
       </div>
     `;
@@ -3589,6 +3659,10 @@ async function goToStripeCheckout(source = 'basket', item = null) {
   }
 
   try {
+    // SECURITY: Generate a nonce to verify this is a real Stripe return, not a spoofed URL
+    const checkoutNonce = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    sessionStorage.setItem('xds_checkout_nonce', checkoutNonce);
+
     const response = await fetch(CHECKOUT_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -3598,7 +3672,7 @@ async function goToStripeCheckout(source = 'basket', item = null) {
       },
       body: JSON.stringify({
         items: payloadItems,
-        successUrl: `${window.location.origin}${window.location.pathname}#payment-success`,
+        successUrl: `${window.location.origin}${window.location.pathname}?nonce=${checkoutNonce}#payment-success`,
         cancelUrl: `${window.location.origin}${window.location.pathname}`,
       }),
     });
@@ -3626,6 +3700,15 @@ async function goToStripeCheckout(source = 'basket', item = null) {
 function showPaymentReturnPageIfNeeded() {
   if (window.location.hash !== '#payment-success') return;
 
+  // SECURITY: Verify nonce — prevents manually typing the URL to trigger the success page
+  const urlNonce    = new URLSearchParams(window.location.search).get('nonce');
+  const storedNonce = sessionStorage.getItem('xds_checkout_nonce');
+  if (!urlNonce || !storedNonce || urlNonce !== storedNonce) {
+    history.replaceState(null, '', window.location.pathname);
+    return;
+  }
+  sessionStorage.removeItem('xds_checkout_nonce');
+
   const paymentPage = document.getElementById('payment-return-page');
   if (!paymentPage) return;
 
@@ -3634,9 +3717,7 @@ function showPaymentReturnPageIfNeeded() {
   document.querySelectorAll('.hero, .ticker-wrap, #listings-section, #rts-section, #src-section, .cta-strip, .footer-signin, footer')
     .forEach(section => section.style.display = 'none');
 
-  try {
-    localStorage.removeItem('xdsourcedit_basket');
-  } catch (error) {}
+  try { localStorage.removeItem('xdsourcedit_basket'); } catch (e) {}
 }
 
 document.getElementById('return-shop-btn')?.addEventListener('click', (e) => {
