@@ -3622,15 +3622,14 @@ async function goToStripeCheckout(source = 'basket', item = null) {
     return;
   }
 
-  const payloadItems = checkoutItems.map(product => ({
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    quantity: product.quantity || 1,
-    selectedSize: product.selectedSize || 'One Size',
-    category: product.category || '',
-    image: product.image || (Array.isArray(product.photos) && product.photos[0]) || ''
-  }));
+// SECURITY: Only send identifiers to the Edge Function.
+// Do NOT send name, price, category, or image from the browser.
+// The Edge Function must fetch those trusted values from Supabase.
+const payloadItems = checkoutItems.map(product => ({
+  id: product.id,
+  quantity: product.quantity || 1,
+  selectedSize: product.selectedSize || 'One Size'
+}));
 
   try {
     localStorage.setItem('xdsourcedit_pending_order', JSON.stringify({
