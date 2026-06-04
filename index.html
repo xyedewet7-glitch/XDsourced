@@ -2939,16 +2939,21 @@ listingImageFile.addEventListener('change', async (e) => {
   }
 });
 
-listingImageZone.addEventListener('paste', (e) => {
+listingImageZone.addEventListener('paste', async (e) => {
   const imageItems = Array.from(e.clipboardData.items || []).filter(i => i.type.startsWith('image/'));
   if (!imageItems.length) return;
+
   e.preventDefault();
-  imageItems.forEach(item => {
+
+  for (const item of imageItems) {
     const file = item.getAsFile();
-    if (file) {
+
+    if (file && await isValidImageFile(file)) {
       readImageFile(file);
+    } else if (file) {
+      alert('Invalid pasted image. Please paste a JPEG, PNG, WebP, or GIF image.');
     }
-  });
+  }
 });
 
 listingImageZone.addEventListener('click', () => {
