@@ -2804,16 +2804,21 @@ async function uploadListingPhotosToStorage(photos) {
 
 
 function updateListingImagePreviewGrid() {
-  listingImagePreviewGrid.innerHTML = listingImageData.map(src => `
-    <img src="${src}" alt="Listing photo preview" />
-  `).join('');
+  listingImagePreviewGrid.innerHTML = '';
+
+  listingImageData.forEach(src => {
+    const img = document.createElement('img');
+    img.src = String(src || '');
+    img.alt = 'Listing photo preview';
+    listingImagePreviewGrid.appendChild(img);
+  });
+
   listingImagePreviewGrid.hidden = listingImageData.length === 0;
 
   if (clearListingImagesBtn) {
     clearListingImagesBtn.classList.toggle('visible', listingImageData.length > 0);
   }
 }
-
 
 
 function getListingSizesFromInput() {
@@ -3544,9 +3549,15 @@ function openSizeSelector(product, mode = 'basket') {
 
   sizeAdd.textContent = mode === 'payment' ? 'Continue to Payment' : 'Add to Basket';
 
-  sizeOptions.innerHTML = currentProduct.sizes.map(size => 
-    `<div class="size-option" data-size="${size}">${size}</div>`
-  ).join('');
+sizeOptions.innerHTML = '';
+
+currentProduct.sizes.forEach(size => {
+  const option = document.createElement('div');
+  option.className = 'size-option';
+  option.dataset.size = String(size ?? '');
+  option.textContent = String(size ?? '');
+  sizeOptions.appendChild(option);
+});
 
   document.querySelectorAll('.size-option').forEach(option => {
     option.addEventListener('click', () => {
