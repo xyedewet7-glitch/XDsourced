@@ -3683,7 +3683,22 @@ const payloadItems = checkoutItems.map(product => ({
       return;
     }
 
-    window.location.href = result.url;
+   let checkoutUrl;
+
+try {
+  checkoutUrl = new URL(result.url);
+} catch (error) {
+  alert('Invalid checkout URL returned. Please try again.');
+  return;
+}
+
+if (checkoutUrl.origin !== 'https://checkout.stripe.com') {
+  console.error('Blocked non-Stripe checkout URL:', result.url);
+  alert('Invalid checkout destination. Please contact support.');
+  return;
+}
+
+window.location.href = checkoutUrl.toString();
   } catch (error) {
     console.error('Checkout error:', error);
     alert('Could not connect to Stripe checkout. Please try again.');
