@@ -15,7 +15,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
-
   /* ============================================================
      ✏️  THEME — change these variables to restyle everything
      Monochrome light palette: ink (near-black) for interactive
@@ -31,7 +30,7 @@
     --muted:         #c8102e;
     --accent:        #141414;   /* ← ink: primary buttons, prices, active states */
     --accent-dark:   #000000;   /* ink hover/pressed */
-    --on-accent:     #ffffff;   /* text/icons on ink backgrounds */
+    --on-accent:     #8a8a8a;   /* text/icons on ink backgrounds */
     --silver:        #b9b7b3;   /* metallic secondary accent: underlines, dots, focus rings */
     --font-head:     'Barlow Condensed', sans-serif;
     --font-body:     'DM Sans', sans-serif;
@@ -1693,7 +1692,6 @@
   #filter-row {
     visibility: visible !important;
   }
-
 </style>
 <script
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
@@ -1794,6 +1792,7 @@ const CONFIG = {
       { key: "clothes", label: "Clothes", description: "Hoodies, tees, jackets, cargos, and streetwear pieces." },
       { key: "accessories", label: "Accessories", description: "Caps, bags, jewellery, and finishing pieces." },
       { key: "forher", label: "For Her", description: "Women's shoes, clothes, bags and accessories." },
+      { key: "winter", label: "Winter Stock", description: "Cold-weather pieces — coats, fleeces, thermals." },
     ],
     items: [],
   },
@@ -1982,6 +1981,7 @@ const CONFIG = {
           <option value="clothes">Clothes</option>
           <option value="accessories">Accessories</option>
           <option value="forher">For Her</option>
+          <option value="winter">Winter Stock</option>
         </select>
       </div>
       <div class="form-group">
@@ -2085,7 +2085,7 @@ function safeBadgeValue(value) {
   return allowed.includes(value) ? value : 'in-stock';
 }
 function safeCategoryValue(value) {
-  const allowed = ['inhand', 'shoes', 'clothes', 'accessories', 'forher'];
+  const allowed = ['inhand', 'shoes', 'clothes', 'accessories', 'forher', 'winter'];
   return allowed.includes(value) ? value : 'shoes';
 }
 const SUPABASE_URL = "https://yuhxgdalgeodkhbgiybj.supabase.co";
@@ -2153,7 +2153,7 @@ $('cta-btn').href = C.ctaStrip.cta.href;
 $('listings-label').textContent = C.listings.label;
 $('listings-heading').textContent = C.listings.heading;
 const badgeLabel = { 'in-stock': 'In Stock', 'in-hand': 'In Hand', 'can-order': 'Can Order', 'sold-out': 'Sold Out' };
-const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories', forher: 'For Her' };
+const categoryLabel = { inhand: 'In-Hand', shoes: 'Shoes', clothes: 'Clothes', accessories: 'Accessories', forher: 'For Her', winter: 'Winter Stock' };
 let activeStatusFilter = 'All';
 let activeCategoryFilter = 'all';
 function guessListingCategory(product) {
@@ -2275,11 +2275,11 @@ function renderListings() {
   const grid = $('listings-grid');
   const categories = C.listings.categories || [
     { key: 'inhand', label: 'In-Hand', description: 'Items currently in hand and ready to ship.' },
-    { key: 'shoes', label: 'Shoes', description: 'Footwear and future shoe drops.' },
+    { key: 'winter', label: 'Winter Stock', description: 'Cold-weather pieces — coats, fleeces, thermals.' },
+     { key: 'shoes', label: 'Shoes', description: 'Footwear and future shoe drops.' },
     { key: 'clothes', label: 'Clothes', description: 'Hoodies, tees, jackets, cargos, and streetwear pieces.' },
     { key: 'accessories', label: 'Accessories', description: 'Caps, bags, jewellery, and finishing pieces.' },
     { key: 'forher', label: 'For Her', description: "Women's shoes, clothes, bags and accessories." },
-    { key: 'Winter', label: 'Winter Stock description: "Everyday Winter essentials." },
   ];
   const html = categories.map(category => {
     const categoryItems = C.listings.items
@@ -2814,7 +2814,6 @@ const contactForm = document.getElementById('contact-form');
 document.addEventListener('click', (e) => {
   const cta = e.target.closest('a');
   if (!cta) return;
-
   if (cta.textContent.includes('Request an Item') || cta.textContent.includes('Submit Sourcing Request')) {
     e.preventDefault();
     contactModal.classList.add('open');
@@ -2833,13 +2832,11 @@ contactModal.addEventListener('click', (e) => {
 });
 contactForm.addEventListener('submit', (e) => {
   e.preventDefault();
-
   const name = document.getElementById('contact-name').value;
   const email = document.getElementById('contact-email').value;
   const phone = document.getElementById('contact-phone').value;
   const item = document.getElementById('contact-item').value;
   const message = document.getElementById('contact-message').value;
-
   const emailBody = `
 Name: ${name}
 Email: ${email}
@@ -2848,10 +2845,8 @@ Item Requested: ${item}
 Additional Details:
 ${message || 'None provided'}
   `.trim();
-
   const mailtoLink = `mailto:xyedewet.ie@gmail.com?subject=Item Request: ${encodeURIComponent(item)}&body=${encodeURIComponent(emailBody)}`;
   window.location.href = mailtoLink;
-
   contactForm.reset();
   contactModal.classList.remove('open');
   alert('Opening your email client. Please send the message to confirm your request.');
@@ -2973,7 +2968,6 @@ function saveBasket() {
 function updateBasketUI() {
   const basketItems = document.getElementById('basket-items');
   const basketTotal = document.getElementById('basket-total');
-
   if (basket.length === 0) {
     basketItems.innerHTML = '<div class="basket-empty">Your basket is empty</div>';
     basketTotal.textContent = '€0';
@@ -3057,7 +3051,6 @@ currentProduct.sizes.forEach(size => {
 document.addEventListener('click', (e) => {
   const addBtn = e.target.closest('.add-to-basket-btn');
   if (!addBtn) return;
-
   const productId = parseInt(addBtn.dataset.productId);
   openSizeSelector(C.listings.items[productId], 'basket');
 });
@@ -3085,7 +3078,6 @@ sizeAdd.addEventListener('click', () => {
     return;
   }
   basket.push(sizedItem);
-
   saveBasket();
   updateBasketUI();
   sizeSelectModal.classList.remove('open');
